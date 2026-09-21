@@ -18,6 +18,11 @@ import {
   DriverMatchingStrategy,
   NearestDriverMatchingStrategy,
 } from '../strategies/DriverMatchingStrategy';
+import {
+  NoSurgePricingPolicy,
+  SurgePricingCalculator,
+  SurgePricingPolicy,
+} from '../strategies/SurgePricing';
 import { SEARCH_RADIUS_KM } from '../../shared/constants/pricing';
 
 export class RideService {
@@ -25,8 +30,13 @@ export class RideService {
     private rideRepository: IRideRepository,
     private driverRepository: IDriverRepository,
     private userRepository: IUserRepository,
-    private matchingStrategy: DriverMatchingStrategy = new NearestDriverMatchingStrategy()
-  ) {}
+    private matchingStrategy: DriverMatchingStrategy = new NearestDriverMatchingStrategy(),
+    surgePricingPolicy: SurgePricingPolicy = new NoSurgePricingPolicy()
+  ) {
+    this.surgePricingCalculator = new SurgePricingCalculator(surgePricingPolicy);
+  }
+
+  private readonly surgePricingCalculator: SurgePricingCalculator;
 
   async bookRide(
     userId: string,
@@ -106,8 +116,12 @@ export class RideService {
     const distanceKm = ride.startLocation.distanceTo(ride.endLocation);
     const pricingStrategy = PricingStrategyFactory.getStrategy(ride.requestedVehicleType);
     const baseFare = pricingStrategy.calculateFare(distanceKm);
+    const activeRides = (await this.rideRepository.findAll()).filter(
+      (activeRide) => activeRide.getStatus() === RideStatus.ONGOING
+    ).length;
+    const availableDrivers = (await this.driverRepository.findAvailableDrivers()).length + 1;
+    const finalFare = this.surgePricingCalculator.apply(baseFare, activeRides, availableDrivers);
 
-    let finalFare = baseFare;
     if (couponCode) {
       // Apply coupon separately (CouponService will handle validation)
       // For now, just store it; the controller will handle coupon application
