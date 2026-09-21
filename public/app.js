@@ -19,6 +19,16 @@ function distanceKm(startLatitude, startLongitude, endLatitude, endLongitude) {
   return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function estimateFare(distance, vehicleType) {
+  const rates = vehicleType === "SEDAN" ? [15, 12, 8] : [10, 8, 5];
+  const fare = distance <= 2
+    ? distance * rates[0]
+    : distance <= 5
+      ? 2 * rates[0] + (distance - 2) * rates[1]
+      : 2 * rates[0] + 3 * rates[1] + (distance - 5) * rates[2];
+  return Math.max(50, fare);
+}
+
 function updateLocationSummary() {
   const startLatitude = Number($("#start-latitude").value);
   const startLongitude = Number($("#start-longitude").value);
@@ -26,7 +36,9 @@ function updateLocationSummary() {
   const endLongitude = Number($("#end-longitude").value);
   $("#pickup-summary").textContent = `${startLatitude.toFixed(4)}, ${startLongitude.toFixed(4)}`;
   $("#dropoff-summary").textContent = `${endLatitude.toFixed(4)}, ${endLongitude.toFixed(4)}`;
-  $("#route-distance").textContent = `${distanceKm(startLatitude, startLongitude, endLatitude, endLongitude).toFixed(1)} km`;
+  const distance = distanceKm(startLatitude, startLongitude, endLatitude, endLongitude);
+  $("#route-distance").textContent = `${distance.toFixed(1)} km`;
+  $("#estimated-fare").textContent = `₹${estimateFare(distance, $("#booking-vehicle").value).toFixed(2)}`;
 }
 
 function populateLocationPresets() {
@@ -84,7 +96,7 @@ function renderDrivers() {
   $("#driver-list").innerHTML = state.drivers.length
     ? state.drivers.map((driver) => `
       <div class="driver-row">
-        <div><div class="driver-name">${driver.name}</div><div class="driver-meta">${driver.vehicle.type} · ${driver.vehicle.model} · ${distanceKm(driver.location.latitude, driver.location.longitude, Number($("#start-latitude").value), Number($("#start-longitude").value)).toFixed(1)} km away</div></div>
+        <div><div class="driver-name">${driver.name}</div><div class="driver-meta">${driver.vehicle.type} · ${driver.vehicle.model} · ${distanceKm(driver.location.latitude, driver.location.longitude, Number($("#start-latitude").value), Number($("#start-longitude").value)).toFixed(1)} km from pickup</div></div>
         <span class="badge badge-${driver.status.toLowerCase().replace("_", "-")}">${driver.status.replace("_", " ")}</span>
       </div>`).join("")
     : '<div class="empty-state">No drivers registered yet.</div>';
@@ -116,7 +128,7 @@ function renderRides() {
           ? '<div class="ride-progress"><span class="complete">Requested</span><span class="complete">Driver assigned</span><span class="complete">Ride in progress</span><span class="complete">Completed</span></div>'
           : '<div class="ride-progress"><span class="complete">Requested</span><span class="cancelled">Cancelled</span></div>';
       return `<div class="ride-row">
-        <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType}${ride.actualVehicleType !== ride.requestedVehicleType ? ` → ${ride.actualVehicleType} upgrade` : ""} · ${ride.distance ? `${ride.distance.toFixed(1)} km route · ` : ""}${ride.id.slice(0, 17)}</div>${ride.appliedCoupon ? `<div class="ride-discount">Coupon ${ride.appliedCoupon} applied</div>` : ""}${progress}</div>
+        <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType}${ride.actualVehicleType !== ride.requestedVehicleType ? ` → ${ride.actualVehicleType} upgrade` : ""} · ${ride.distance !== undefined ? `${ride.distance.toFixed(1)} km trip · ` : ""}${ride.id.slice(0, 17)}</div>${ride.appliedCoupon ? `<div class="ride-discount">Coupon ${ride.appliedCoupon} applied</div>` : ""}${progress}</div>
         <div class="ride-row-actions">${fareDetails}<span class="badge badge-${ride.status.toLowerCase()}">${ride.status}</span>
         ${ride.status === "ONGOING" ? `<button class="button button-quiet button-small" data-end-ride="${ride.id}">Complete</button><button class="button button-quiet button-small" data-cancel-ride="${ride.id}">Cancel</button>` : ""}</div>
       </div>`;
@@ -174,6 +186,7 @@ $("#history-filter").addEventListener("change", (event) => {
 ["start-latitude", "start-longitude", "end-latitude", "end-longitude"].forEach((id) => {
   $(`#${id}`).addEventListener("input", updateLocationSummary);
 });
+$("#booking-vehicle").addEventListener("change", updateLocationSummary);
 populateLocationPresets();
 applyLocationPreset(0);
 updateLocationSummary();

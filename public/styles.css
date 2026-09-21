@@ -52,6 +52,7 @@ input, select { width: 100%; border: 1px solid var(--line); border-radius: 9px; 
 .inline-input span { color: var(--muted); font-size: 12px; }
 .route-estimate { display: flex; flex-direction: column; justify-content: center; gap: 4px; border-radius: 10px; background: #f0f7f2; padding: 12px; color: var(--green); font-size: 12px; }
 .route-estimate strong { font-size: 20px; letter-spacing: -.03em; }
+.route-estimate strong + strong { color: var(--ink); font-size: 18px; }
 .booking-result { display: grid; gap: 5px; margin-top: 16px; min-height: 0; color: var(--green); }
 .booking-result:empty { display: none; }
 .booking-result strong { font-size: 14px; }
