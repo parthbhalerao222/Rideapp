@@ -23,7 +23,7 @@ Data is held in memory and resets when the process restarts.
 4. Complete the trip to calculate distance and fare.
 5. Refresh to see the driver available again and the completed fare.
 
-The booking form includes presets for Delhi, Mumbai, and Bengaluru routes, a same-location minimum-fare case, and a no-driver-nearby case. Add another demo route by adding one object to `locationPresets` in `public/app.js`.
+The booking form includes presets for Delhi, Mumbai, and Bengaluru routes, a same-location minimum-fare case, and a no-driver-nearby case. The demo starts with 10 riders and 10 drivers, and uses a stable 5 km matching radius so the booking flow stays simple. Add another demo route by adding one object to `locationPresets` in `public/app.js`.
 
 For a coupon demo, enter `WELCOME20` before booking. The code is validated at booking time, shown as part of the ride state, and the discount is applied after completion when the final distance-based fare is known. The activity view shows the applied coupon and supports filtering history by rider or driver.
 

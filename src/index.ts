@@ -85,18 +85,40 @@ async function seedDemoData(
   rideService: RideService,
   couponService: CouponService
 ): Promise<void> {
-  const [demoUser, secondUser] = await Promise.all([
-    userService.registerUser('Alex Morgan', 'alex@example.com', '+91 98765 43210'),
-    userService.registerUser('Priya Shah', 'priya@example.com', '+91 98765 43211'),
-  ]);
+  const users: Array<[string, string, string]> = [
+    ['Alex Morgan', 'alex@example.com', '+91 98765 43210'],
+    ['Priya Shah', 'priya@example.com', '+91 98765 43211'],
+    ['Kabir Mehta', 'kabir@example.com', '+91 98765 43212'],
+    ['Isha Kapoor', 'isha@example.com', '+91 98765 43213'],
+    ['Arjun Rao', 'arjun@example.com', '+91 98765 43214'],
+    ['Neha Verma', 'neha@example.com', '+91 98765 43215'],
+    ['Vikram Joshi', 'vikram@example.com', '+91 98765 43216'],
+    ['Ananya Das', 'ananya@example.com', '+91 98765 43217'],
+    ['Riya Nair', 'riya@example.com', '+91 98765 43218'],
+    ['Aditya Sen', 'aditya@example.com', '+91 98765 43219'],
+  ];
+  const drivers: Array<[string, string, string, VehicleType, string, string, number, number]> = [
+    ['Sam Taylor', 'sam@example.com', '+91 90000 00001', VehicleType.HATCHBACK, 'MH12AB1234', 'Honda City', 28.7041, 77.1025],
+    ['Maya Singh', 'maya@example.com', '+91 90000 00002', VehicleType.SEDAN, 'DL01CD5678', 'Maruti Ciaz', 28.705, 77.103],
+    ['Rohan Mehta', 'rohan@example.com', '+91 90000 00003', VehicleType.SEDAN, 'KA03EF9012', 'Honda Amaze', 28.706, 77.104],
+    ['Tara Menon', 'tara@example.com', '+91 90000 00004', VehicleType.HATCHBACK, 'DL02GH3456', 'Hyundai Grand i10', 28.697, 77.109],
+    ['Nikhil Batra', 'nikhil@example.com', '+91 90000 00005', VehicleType.SEDAN, 'DL03IJ7890', 'Honda City', 28.711, 77.098],
+    ['Meera Iyer', 'meera@example.com', '+91 90000 00006', VehicleType.HATCHBACK, 'DL04KL1234', 'Tata Altroz', 28.698, 77.095],
+    ['Dev Malhotra', 'dev@example.com', '+91 90000 00007', VehicleType.SEDAN, 'DL05MN5678', 'Skoda Slavia', 28.713, 77.107],
+    ['Sana Khan', 'sana@example.com', '+91 90000 00008', VehicleType.HATCHBACK, 'DL06OP9012', 'Maruti Swift', 28.691, 77.101],
+    ['Rahul Khanna', 'rahul@example.com', '+91 90000 00009', VehicleType.SEDAN, 'DL07QR3456', 'Toyota Etios', 28.716, 77.096],
+    ['Pooja Sethi', 'pooja@example.com', '+91 90000 00010', VehicleType.HATCHBACK, 'DL08ST7890', 'Renault Kwid', 28.709, 77.112],
+  ];
 
-  await Promise.all([
-    driverService.registerDriver('Sam Taylor', 'sam@example.com', '+91 90000 00001', VehicleType.HATCHBACK, 'MH12AB1234', 'Honda City', 28.7041, 77.1025),
-    driverService.registerDriver('Maya Singh', 'maya@example.com', '+91 90000 00002', VehicleType.SEDAN, 'DL01CD5678', 'Maruti Ciaz', 28.705, 77.103),
-    driverService.registerDriver('Rohan Mehta', 'rohan@example.com', '+91 90000 00003', VehicleType.SEDAN, 'KA03EF9012', 'Honda Amaze', 28.706, 77.104),
-  ]);
+  const seededUsers = await Promise.all(
+    users.map(([name, email, phone]) => userService.registerUser(name, email, phone))
+  );
+  await Promise.all(
+    drivers.map(([name, email, phone, vehicleType, plate, model, latitude, longitude]) =>
+      driverService.registerDriver(name, email, phone, vehicleType, plate, model, latitude, longitude)
+    )
+  );
 
   await couponService.createCoupon('WELCOME20', 'PERCENTAGE', 20, new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), 100);
-  await rideService.bookRide(demoUser.id, VehicleType.SEDAN, 28.7041, 77.1025, 28.7055, 77.104);
-  void secondUser;
+  await rideService.bookRide(seededUsers[0].id, VehicleType.SEDAN, 28.7041, 77.1025, 28.7055, 77.104);
 }

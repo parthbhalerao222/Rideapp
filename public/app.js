@@ -59,6 +59,19 @@ function setNotice(message = "") {
   $("#notice").textContent = message;
 }
 
+function renderBookingResult(ride) {
+  const driver = state.drivers.find((item) => item.id === ride.driverId);
+  if (!ride || !driver) {
+    $("#booking-result").textContent = "";
+    return;
+  }
+  const upgrade = ride.actualVehicleType !== ride.requestedVehicleType
+    ? ` Requested ${ride.requestedVehicleType}, upgraded to ${ride.actualVehicleType} at no extra vehicle charge.`
+    : "";
+  const coupon = ride.couponCode ? ` Coupon ${ride.couponCode} was validated and attached to the ride.` : "";
+  $("#booking-result").innerHTML = `<strong>Driver assigned: ${driver.name}</strong><span>Nearest available ${driver.vehicle.type.toLowerCase()} · ${distanceKm(driver.location.latitude, driver.location.longitude, ride.startLocation.latitude, ride.startLocation.longitude).toFixed(1)} km from pickup.</span><small>${upgrade}${coupon}</small>`;
+}
+
 function renderUsers() {
   const select = $("#booking-user");
   select.innerHTML = state.users.length
@@ -92,6 +105,11 @@ function renderRides() {
       const user = state.users.find((item) => item.id === ride.userId);
       const driver = state.drivers.find((item) => item.id === ride.driverId);
       const fare = ride.discountedFare ?? ride.fare;
+      const fareDetails = ride.status === "COMPLETED"
+        ? `<div class="fare-details">Final fare <strong>${formatFare(fare)}</strong>${ride.appliedCoupon ? ` · ${ride.appliedCoupon} applied` : ""}</div>`
+        : ride.status === "CANCELLED"
+          ? `<div class="fare-details">Cancellation fee <strong>${formatFare(ride.cancellationFee ?? 0)}</strong></div>`
+          : '<div class="fare-details">Fare calculated when trip is completed</div>';
       const progress = ride.status === "ONGOING"
         ? '<div class="ride-progress"><span class="complete">Requested</span><span class="complete">Driver assigned</span><span class="current">Ride in progress</span><span>Completed</span></div>'
         : ride.status === "COMPLETED"
@@ -99,7 +117,7 @@ function renderRides() {
           : '<div class="ride-progress"><span class="complete">Requested</span><span class="cancelled">Cancelled</span></div>';
       return `<div class="ride-row">
         <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType}${ride.actualVehicleType !== ride.requestedVehicleType ? ` → ${ride.actualVehicleType} upgrade` : ""} · ${ride.distance ? `${ride.distance.toFixed(1)} km route · ` : ""}${ride.id.slice(0, 17)}</div>${ride.appliedCoupon ? `<div class="ride-discount">Coupon ${ride.appliedCoupon} applied</div>` : ""}${progress}</div>
-        <div class="ride-row-actions"><span class="fare">${fare === undefined ? "Fare pending" : formatFare(fare)}</span><span class="badge badge-${ride.status.toLowerCase()}">${ride.status}</span>
+        <div class="ride-row-actions">${fareDetails}<span class="badge badge-${ride.status.toLowerCase()}">${ride.status}</span>
         ${ride.status === "ONGOING" ? `<button class="button button-quiet button-small" data-end-ride="${ride.id}">Complete</button><button class="button button-quiet button-small" data-cancel-ride="${ride.id}">Cancel</button>` : ""}</div>
       </div>`;
     }).join("")
@@ -133,17 +151,18 @@ $("#booking-form").addEventListener("submit", async (event) => {
   event.preventDefault();
   setNotice("");
   try {
-    await request("/api/rides", { method: "POST", body: JSON.stringify({
+    const ride = await request("/api/rides", { method: "POST", body: JSON.stringify({
       userId: $("#booking-user").value,
       vehicleType: $("#booking-vehicle").value,
       startLatitude: Number($("#start-latitude").value),
       startLongitude: Number($("#start-longitude").value),
       endLatitude: Number($("#end-latitude").value),
       endLongitude: Number($("#end-longitude").value),
-      searchRadiusKm: Number($("#search-radius").value),
       couponCode: $("#coupon-code").value.trim() || undefined,
     })});
     await refresh();
+    renderBookingResult(ride);
+    setNotice("Ride booked successfully. The selected driver is shown below.");
   } catch (error) { setNotice(error.message); }
 });
 

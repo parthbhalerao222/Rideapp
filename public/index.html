@@ -70,10 +70,6 @@
               <select id="route-preset"></select>
               <small>Pick a familiar route or adjust coordinates below</small>
             </label>
-            <label>Search radius
-              <div class="inline-input"><input id="search-radius" type="number" min="0.1" step="0.5" value="5" required /><span>km</span></div>
-              <small>Drivers are matched within this distance of pickup</small>
-            </label>
             <label>Pickup location<input id="start-location" value="Connaught Place" required /><small id="pickup-summary">28.7041, 77.1025</small></label>
             <label>Drop-off location<input id="end-location" value="India Gate" required /><small id="dropoff-summary">28.6139, 77.2090</small></label>
             <details class="coordinates">
@@ -89,6 +85,7 @@
             <div class="route-estimate"><span>Estimated route</span><strong id="route-distance">— km</strong><small>calculated from pickup and drop-off coordinates</small></div>
             <button class="button button-primary full-width" type="submit">Find a driver <span>→</span></button>
           </form>
+          <div id="booking-result" class="booking-result" aria-live="polite"></div>
         </div>
 
         <div class="panel">
