@@ -45,6 +45,21 @@ export class RideController {
       const statusCode = this.getErrorStatusCode(error);
       res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
+
+  }
+
+  async cancelRide(req: Request, res: Response): Promise<void> {
+    try {
+      const rideId = req.params.rideId as string;
+      const { ride, cancellationFee } = await this.rideService.cancelRide(rideId);
+      res.status(200).json({
+        ...this.rideToResponse(ride),
+        cancellationFee: cancellationFee.amount,
+      });
+    } catch (error) {
+      const statusCode = this.getErrorStatusCode(error);
+      res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+    }
   }
 
   async getUserRideHistory(req: Request, res: Response): Promise<void> {
@@ -87,6 +102,7 @@ export class RideController {
       fare: ride.getActualFare()?.amount ?? undefined,
       appliedCoupon: ride.getAppliedCouponCode() ?? undefined,
       discountedFare: ride.getDiscountedFare()?.amount ?? undefined,
+      cancellationFee: ride.getCancellationFee()?.amount ?? undefined,
       createdAt: ride.createdAt.toISOString(),
     };
   }

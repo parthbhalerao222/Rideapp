@@ -23,6 +23,10 @@ import {
   SurgePricingCalculator,
   SurgePricingPolicy,
 } from '../strategies/SurgePricing';
+import {
+  CancellationPolicy,
+  PercentageCancellationPolicy,
+} from '../strategies/CancellationPolicy';
 import { SEARCH_RADIUS_KM } from '../../shared/constants/pricing';
 
 export class RideService {
@@ -31,7 +35,8 @@ export class RideService {
     private driverRepository: IDriverRepository,
     private userRepository: IUserRepository,
     private matchingStrategy: DriverMatchingStrategy = new NearestDriverMatchingStrategy(),
-    surgePricingPolicy: SurgePricingPolicy = new NoSurgePricingPolicy()
+    surgePricingPolicy: SurgePricingPolicy = new NoSurgePricingPolicy(),
+    private cancellationPolicy: CancellationPolicy = new PercentageCancellationPolicy()
   ) {
     this.surgePricingCalculator = new SurgePricingCalculator(surgePricingPolicy);
   }
@@ -145,6 +150,27 @@ export class RideService {
 
   async getUserRideHistory(userId: string): Promise<Ride[]> {
     return this.rideRepository.findByUserId(userId);
+  }
+
+  async cancelRide(rideId: string): Promise<{ ride: Ride; cancellationFee: Money }> {
+    const ride = await this.getRideById(rideId);
+    if (ride.getStatus() !== RideStatus.ONGOING) {
+      throw new InvalidRideStateError(`Ride must be in ONGOING status to cancel. Current status: ${ride.getStatus()}`);
+    }
+
+    const distanceKm = ride.startLocation.distanceTo(ride.endLocation);
+    const baseFare = PricingStrategyFactory.getStrategy(ride.requestedVehicleType).calculateFare(distanceKm);
+    const cancellationFee = this.cancellationPolicy.calculateFee(baseFare);
+    ride.cancelRide(cancellationFee);
+
+    const driver = await this.driverRepository.findById(ride.driverId);
+    if (!driver) {
+      throw new DriverNotFoundError(`Driver ${ride.driverId} not found`);
+    }
+    driver.setStatus(DriverStatus.AVAILABLE);
+    await this.rideRepository.save(ride);
+    await this.driverRepository.save(driver);
+    return { ride, cancellationFee };
   }
 
   async getDriverRideHistory(driverId: string): Promise<Ride[]> {

@@ -46,7 +46,7 @@ function renderRides() {
       return `<div class="ride-row">
         <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType} · ${ride.id.slice(0, 17)}</div></div>
         <div class="ride-row-actions"><span class="fare">${fare === undefined ? "Fare pending" : formatFare(fare)}</span><span class="badge badge-${ride.status.toLowerCase()}">${ride.status}</span>
-        ${ride.status === "ONGOING" ? `<button class="button button-quiet button-small" data-end-ride="${ride.id}">Complete</button>` : ""}</div>
+        ${ride.status === "ONGOING" ? `<button class="button button-quiet button-small" data-end-ride="${ride.id}">Complete</button><button class="button button-quiet button-small" data-cancel-ride="${ride.id}">Cancel</button>` : ""}</div>
       </div>`;
     }).join("")
     : "No rides yet. Request one above to get started.";
@@ -106,9 +106,12 @@ $("#driver-form").addEventListener("submit", async (event) => {
 
 $("#ride-list").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-end-ride]");
-  if (!button) return;
+  const cancelButton = event.target.closest("[data-cancel-ride]");
+  if (!button && !cancelButton) return;
   try {
-    await request(`/api/rides/${button.dataset.endRide}/end`, { method: "POST", body: "{}" });
+    const rideId = button?.dataset.endRide ?? cancelButton.dataset.cancelRide;
+    const action = button ? "end" : "cancel";
+    await request(`/api/rides/${rideId}/${action}`, { method: "POST", body: "{}" });
     await refresh();
   } catch (error) { setNotice(error.message); }
 });

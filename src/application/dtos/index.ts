@@ -85,6 +85,7 @@ export interface RideResponse {
   fare?: number;
   appliedCoupon?: string;
   discountedFare?: number;
+  cancellationFee?: number;
   createdAt: string;
 }
 

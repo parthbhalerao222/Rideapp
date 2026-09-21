@@ -8,6 +8,7 @@ export class Ride {
   private distanceKm: number | null = null;
   private appliedCouponCode: string | null = null;
   private discountedFare: Money | null = null;
+  private cancellationFee: Money | null = null;
 
   constructor(
     readonly id: string,
@@ -58,6 +59,14 @@ export class Ride {
     this.distanceKm = distanceKm;
   }
 
+  cancelRide(cancellationFee: Money): void {
+    if (this.status !== RideStatus.ONGOING) {
+      throw new Error('Ride must be in ONGOING status to cancel');
+    }
+    this.status = RideStatus.CANCELLED;
+    this.cancellationFee = cancellationFee;
+  }
+
   getActualFare(): Money | null {
     return this.actualFare;
   }
@@ -72,6 +81,10 @@ export class Ride {
 
   getDiscountedFare(): Money | null {
     return this.discountedFare;
+  }
+
+  getCancellationFee(): Money | null {
+    return this.cancellationFee;
   }
 
   applyCoupon(couponCode: string, discountedFare: Money): void {

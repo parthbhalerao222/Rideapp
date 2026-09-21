@@ -26,6 +26,7 @@ export function createRouter(
   // Ride routes
   router.post('/rides', (req, res) => rideController.bookRide(req, res));
   router.post('/rides/:rideId/end', (req, res) => rideController.endRide(req, res));
+  router.post('/rides/:rideId/cancel', (req, res) => rideController.cancelRide(req, res));
   router.get('/users/:userId/rides', (req, res) => rideController.getUserRideHistory(req, res));
   router.get('/drivers/:driverId/rides', (req, res) => rideController.getDriverRideHistory(req, res));
 
