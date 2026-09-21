@@ -5,6 +5,7 @@ import { DriverStatus } from '../enums';
 export class Driver {
   private status: DriverStatus = DriverStatus.OFFLINE;
   private location: Location;
+  private rating = 5;
 
   constructor(
     readonly id: string,
@@ -49,5 +50,16 @@ export class Driver {
 
   isAvailable(): boolean {
     return this.status === DriverStatus.AVAILABLE;
+  }
+
+  getRating(): number {
+    return this.rating;
+  }
+
+  setRating(rating: number): void {
+    if (rating < 0 || rating > 5) {
+      throw new Error('Driver rating must be between 0 and 5');
+    }
+    this.rating = rating;
   }
 }

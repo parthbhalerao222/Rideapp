@@ -79,6 +79,7 @@ export class DriverController {
         latitude: driver.getLocation().latitude,
         longitude: driver.getLocation().longitude,
       },
+      rating: driver.getRating(),
     };
   }
 }

@@ -14,13 +14,18 @@ import {
 } from '../../shared/errors';
 import { IdGenerator } from '../../shared/utils/IdGenerator';
 import { PricingStrategyFactory } from '../strategies/PricingStrategy';
+import {
+  DriverMatchingStrategy,
+  NearestDriverMatchingStrategy,
+} from '../strategies/DriverMatchingStrategy';
 import { SEARCH_RADIUS_KM } from '../../shared/constants/pricing';
 
 export class RideService {
   constructor(
     private rideRepository: IRideRepository,
     private driverRepository: IDriverRepository,
-    private userRepository: IUserRepository
+    private userRepository: IUserRepository,
+    private matchingStrategy: DriverMatchingStrategy = new NearestDriverMatchingStrategy()
   ) {}
 
   async bookRide(
@@ -52,12 +57,18 @@ export class RideService {
     }
 
     // First, try to find a driver with the requested vehicle type
-    let selectedDriver = driversInRadius.find((driver) => driver.vehicle.type === requestedVehicleType);
+    let selectedDriver = this.matchingStrategy.selectDriver(
+      driversInRadius.filter((driver) => driver.vehicle.type === requestedVehicleType),
+      startLocation
+    );
     let actualVehicleType = requestedVehicleType;
 
     // If requested type is Hatchback but not available, upgrade to Sedan
     if (!selectedDriver && requestedVehicleType === VehicleType.HATCHBACK) {
-      selectedDriver = driversInRadius.find((driver) => driver.vehicle.type === VehicleType.SEDAN);
+      selectedDriver = this.matchingStrategy.selectDriver(
+        driversInRadius.filter((driver) => driver.vehicle.type === VehicleType.SEDAN),
+        startLocation
+      );
       if (selectedDriver) {
         actualVehicleType = VehicleType.SEDAN;
       }

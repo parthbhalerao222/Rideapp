@@ -69,6 +69,7 @@ export interface DriverResponse {
     latitude: number;
     longitude: number;
   };
+  rating: number;
 }
 
 export interface RideResponse {
