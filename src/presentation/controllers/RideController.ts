@@ -9,12 +9,12 @@ export class RideController {
 
   async bookRide(req: Request, res: Response): Promise<void> {
     try {
-      const { userId, vehicleType, startLatitude, startLongitude, endLatitude, endLongitude, searchRadiusKm } = req.body;
+      const { userId, vehicleType, startLatitude, startLongitude, endLatitude, endLongitude, searchRadiusKm, couponCode } = req.body;
       if (!userId || !vehicleType || startLatitude === undefined || startLongitude === undefined || endLatitude === undefined || endLongitude === undefined) {
         res.status(400).json({ error: 'Required fields are missing' });
         return;
       }
-      const ride = await this.rideService.bookRide(userId, vehicleType as VehicleType, startLatitude, startLongitude, endLatitude, endLongitude, searchRadiusKm);
+      const ride = await this.rideService.bookRide(userId, vehicleType as VehicleType, startLatitude, startLongitude, endLatitude, endLongitude, searchRadiusKm, couponCode);
       res.status(201).json(this.rideToResponse(ride));
     } catch (error) {
       const statusCode = this.getErrorStatusCode(error);
@@ -25,20 +25,7 @@ export class RideController {
   async endRide(req: Request, res: Response): Promise<void> {
     try {
       const rideId = req.params.rideId as string;
-      const { couponCode } = req.body;
-
-      const { ride, finalFare } = await this.rideService.endRide(rideId, couponCode);
-
-      let discountedFare: number | undefined;
-      if (couponCode) {
-        try {
-          const discounted = await this.couponService.applyCoupon(couponCode, finalFare);
-          discountedFare = discounted.amount;
-          ride.applyCoupon(couponCode, discounted);
-        } catch (error) {
-          // Coupon validation fails, but ride still completes with base fare
-        }
-      }
+      const { ride } = await this.rideService.endRide(rideId);
 
       res.status(200).json(this.rideToResponse(ride));
     } catch (error) {
@@ -90,6 +77,7 @@ export class RideController {
       status: ride.getStatus(),
       requestedVehicleType: ride.requestedVehicleType,
       actualVehicleType: ride.actualVehicleType,
+      couponCode: ride.getCouponCode() ?? undefined,
       startLocation: {
         latitude: ride.startLocation.latitude,
         longitude: ride.startLocation.longitude,
@@ -112,7 +100,13 @@ export class RideController {
     if (errorName === 'RideNotFoundError' || errorName === 'UserNotFoundError' || errorName === 'DriverNotFoundError') {
       return 404;
     }
-    if (errorName === 'InvalidRideStateError' || errorName === 'NoDriverAvailableError') {
+    if (
+      errorName === 'InvalidRideStateError' ||
+      errorName === 'NoDriverAvailableError' ||
+      errorName === 'CouponNotFoundError' ||
+      errorName === 'CouponExpiredError' ||
+      errorName === 'InvalidCouponError'
+    ) {
       return 400;
     }
     return 500;

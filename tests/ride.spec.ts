@@ -11,7 +11,10 @@ import {
   RideNotFoundError,
   UserNotFoundError,
   DriverNotFoundError,
+  CouponNotFoundError,
 } from '../src/shared/errors';
+import { CouponService } from '../src/application/services/CouponService';
+import { InMemoryCouponRepository } from '../src/infrastructure/repositories/InMemoryCouponRepository';
 
 describe('RideService', () => {
   let rideService: RideService;
@@ -98,6 +101,25 @@ describe('RideService', () => {
       await expect(
         rideService.bookRide(user.id, VehicleType.HATCHBACK, 28.7041, 77.1025, 28.6139, 77.2090, 5)
       ).rejects.toThrow(NoDriverAvailableError);
+    });
+
+    it('should reject an invalid coupon before starting the ride', async () => {
+      const couponService = new CouponService(new InMemoryCouponRepository());
+      rideService = new RideService(
+        rideRepository,
+        driverRepository,
+        userRepository,
+        undefined,
+        undefined,
+        undefined,
+        couponService
+      );
+      const user = await userService.registerUser('John', 'john@example.com', '1111111111');
+      await driverService.registerDriver('Driver1', 'driver1@example.com', '2222222222', VehicleType.SEDAN, 'DL-01', 'Model1', 28.7041, 77.1025);
+
+      await expect(
+        rideService.bookRide(user.id, VehicleType.SEDAN, 28.7041, 77.1025, 28.6139, 77.2090, 5, 'NOT-A-COUPON')
+      ).rejects.toThrow(CouponNotFoundError);
     });
   });
 
@@ -192,6 +214,38 @@ describe('RideService', () => {
       // Should use HATCHBACK pricing even though upgraded to SEDAN
       // This is verified by requestedVehicleType being used for pricing
       expect(ride.requestedVehicleType).toBe(VehicleType.HATCHBACK);
+    });
+
+    it('should validate a coupon at booking and apply it when the ride ends', async () => {
+      const couponService = new CouponService(new InMemoryCouponRepository());
+      await couponService.createCoupon('WELCOME20', 'PERCENTAGE', 20, new Date(Date.now() + 86400000));
+      rideService = new RideService(
+        rideRepository,
+        driverRepository,
+        userRepository,
+        undefined,
+        undefined,
+        undefined,
+        couponService
+      );
+      const user = await userService.registerUser('Coupon User', 'coupon@example.com', '4444444444');
+      await driverService.registerDriver('Driver', 'coupon-driver@example.com', '5555555555', VehicleType.SEDAN, 'DL-03', 'Model3', 28.7041, 77.1025);
+
+      const ride = await rideService.bookRide(
+        user.id,
+        VehicleType.SEDAN,
+        28.7041,
+        77.1025,
+        28.7041,
+        77.1025,
+        5,
+        'WELCOME20'
+      );
+
+      expect(ride.getCouponCode()).toBe('WELCOME20');
+      const result = await rideService.endRide(ride.id);
+      expect(result.ride.getAppliedCouponCode()).toBe('WELCOME20');
+      expect(result.ride.getDiscountedFare()?.amount).toBe(40);
     });
   });
 });

@@ -1,6 +1,52 @@
-const state = { users: [], drivers: [], rides: [] };
+const state = { users: [], drivers: [], rides: [], historyFilter: "all" };
+const locationPresets = [
+  { name: "Connaught Place → India Gate", pickup: "Connaught Place", dropoff: "India Gate", start: [28.7041, 77.1025], end: [28.6139, 77.2090] },
+  { name: "Hauz Khas → Saket", pickup: "Hauz Khas", dropoff: "Saket", start: [28.5494, 77.2001], end: [28.5244, 77.2066] },
+  { name: "Bandra → Juhu", pickup: "Bandra", dropoff: "Juhu", start: [19.0607, 72.8362], end: [19.0988, 72.8266] },
+  { name: "Koramangala → MG Road", pickup: "Koramangala", dropoff: "MG Road", start: [12.9352, 77.6245], end: [12.9756, 77.6060] },
+  { name: "Same point (minimum fare)", pickup: "Pickup point", dropoff: "Nearby drop-off", start: [28.7041, 77.1025], end: [28.7041, 77.1025] },
+  { name: "No driver nearby (edge case)", pickup: "Remote pickup", dropoff: "Remote destination", start: [0, 0], end: [0.05, 0.05] },
+];
 const $ = (selector) => document.querySelector(selector);
 const formatFare = (amount) => `₹${Number(amount).toFixed(2)}`;
+const toRadians = (value) => (value * Math.PI) / 180;
+function distanceKm(startLatitude, startLongitude, endLatitude, endLongitude) {
+  const latitudeDelta = toRadians(endLatitude - startLatitude);
+  const longitudeDelta = toRadians(endLongitude - startLongitude);
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(startLatitude)) * Math.cos(toRadians(endLatitude))
+    * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function updateLocationSummary() {
+  const startLatitude = Number($("#start-latitude").value);
+  const startLongitude = Number($("#start-longitude").value);
+  const endLatitude = Number($("#end-latitude").value);
+  const endLongitude = Number($("#end-longitude").value);
+  $("#pickup-summary").textContent = `${startLatitude.toFixed(4)}, ${startLongitude.toFixed(4)}`;
+  $("#dropoff-summary").textContent = `${endLatitude.toFixed(4)}, ${endLongitude.toFixed(4)}`;
+  $("#route-distance").textContent = `${distanceKm(startLatitude, startLongitude, endLatitude, endLongitude).toFixed(1)} km`;
+}
+
+function populateLocationPresets() {
+  $("#route-preset").innerHTML = locationPresets
+    .map((preset, index) => `<option value="${index}">${preset.name}</option>`)
+    .join("");
+}
+
+function applyLocationPreset(index) {
+  const preset = locationPresets[index];
+  if (!preset) return;
+  $("#start-location").value = preset.pickup;
+  $("#end-location").value = preset.dropoff;
+  $("#start-latitude").value = preset.start[0];
+  $("#start-longitude").value = preset.start[1];
+  $("#end-latitude").value = preset.end[0];
+  $("#end-longitude").value = preset.end[1];
+  updateLocationSummary();
+  renderDrivers();
+}
 
 async function request(url, options = {}) {
   const response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
@@ -25,31 +71,50 @@ function renderDrivers() {
   $("#driver-list").innerHTML = state.drivers.length
     ? state.drivers.map((driver) => `
       <div class="driver-row">
-        <div><div class="driver-name">${driver.name}</div><div class="driver-meta">${driver.vehicle.type} · ${driver.vehicle.model}</div></div>
+        <div><div class="driver-name">${driver.name}</div><div class="driver-meta">${driver.vehicle.type} · ${driver.vehicle.model} · ${distanceKm(driver.location.latitude, driver.location.longitude, Number($("#start-latitude").value), Number($("#start-longitude").value)).toFixed(1)} km away</div></div>
         <span class="badge badge-${driver.status.toLowerCase().replace("_", "-")}">${driver.status.replace("_", " ")}</span>
       </div>`).join("")
     : '<div class="empty-state">No drivers registered yet.</div>';
 }
 
 function renderRides() {
+  const visibleRides = state.rides.filter((ride) => state.historyFilter === "all"
+    || ride.userId === state.historyFilter
+    || ride.driverId === state.historyFilter);
   const active = state.rides.filter((ride) => ride.status === "ONGOING").length;
   const totalFare = state.rides.reduce((sum, ride) => sum + (ride.discountedFare ?? ride.fare ?? 0), 0);
   $("#active-ride-count").textContent = active;
   $("#fare-total").textContent = formatFare(totalFare);
-  $("#ride-count-label").textContent = `${state.rides.length} ride${state.rides.length === 1 ? "" : "s"}`;
-  $("#ride-list").classList.toggle("empty-state", state.rides.length === 0);
-  $("#ride-list").innerHTML = state.rides.length
-    ? [...state.rides].reverse().map((ride) => {
+  $("#ride-count-label").textContent = `${visibleRides.length} ride${visibleRides.length === 1 ? "" : "s"}`;
+  $("#ride-list").classList.toggle("empty-state", visibleRides.length === 0);
+  $("#ride-list").innerHTML = visibleRides.length
+    ? [...visibleRides].reverse().map((ride) => {
       const user = state.users.find((item) => item.id === ride.userId);
       const driver = state.drivers.find((item) => item.id === ride.driverId);
       const fare = ride.discountedFare ?? ride.fare;
+      const progress = ride.status === "ONGOING"
+        ? '<div class="ride-progress"><span class="complete">Requested</span><span class="complete">Driver assigned</span><span class="current">Ride in progress</span><span>Completed</span></div>'
+        : ride.status === "COMPLETED"
+          ? '<div class="ride-progress"><span class="complete">Requested</span><span class="complete">Driver assigned</span><span class="complete">Ride in progress</span><span class="complete">Completed</span></div>'
+          : '<div class="ride-progress"><span class="complete">Requested</span><span class="cancelled">Cancelled</span></div>';
       return `<div class="ride-row">
-        <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType} · ${ride.id.slice(0, 17)}</div></div>
+        <div><div class="driver-name">${user?.name ?? "Rider"} → ${driver?.name ?? "Driver"}</div><div class="ride-meta">${ride.requestedVehicleType}${ride.actualVehicleType !== ride.requestedVehicleType ? ` → ${ride.actualVehicleType} upgrade` : ""} · ${ride.distance ? `${ride.distance.toFixed(1)} km route · ` : ""}${ride.id.slice(0, 17)}</div>${ride.appliedCoupon ? `<div class="ride-discount">Coupon ${ride.appliedCoupon} applied</div>` : ""}${progress}</div>
         <div class="ride-row-actions"><span class="fare">${fare === undefined ? "Fare pending" : formatFare(fare)}</span><span class="badge badge-${ride.status.toLowerCase()}">${ride.status}</span>
         ${ride.status === "ONGOING" ? `<button class="button button-quiet button-small" data-end-ride="${ride.id}">Complete</button><button class="button button-quiet button-small" data-cancel-ride="${ride.id}">Cancel</button>` : ""}</div>
       </div>`;
     }).join("")
-    : "No rides yet. Request one above to get started.";
+    : state.rides.length ? "No rides match this history view." : "No rides yet. Request one above to get started.";
+}
+
+function renderHistoryFilter() {
+  const filter = $("#history-filter");
+  const options = [
+    '<option value="all">All riders and drivers</option>',
+    ...state.users.map((user) => `<option value="${user.id}">Rider · ${user.name}</option>`),
+    ...state.drivers.map((driver) => `<option value="${driver.id}">Driver · ${driver.name}</option>`),
+  ];
+  filter.innerHTML = options.join("");
+  filter.value = state.historyFilter;
 }
 
 async function refresh() {
@@ -59,7 +124,7 @@ async function refresh() {
   const rides = [];
   for (const user of users) rides.push(...await request(`/api/users/${user.id}/rides`));
   state.rides = rides.filter((ride, index, list) => list.findIndex((item) => item.id === ride.id) === index);
-  renderUsers(); renderDrivers(); renderRides();
+  renderUsers(); renderDrivers(); renderHistoryFilter(); renderRides();
   $("#rider-count").textContent = users.length;
   $("#api-status").textContent = "API connected";
 }
@@ -75,10 +140,24 @@ $("#booking-form").addEventListener("submit", async (event) => {
       startLongitude: Number($("#start-longitude").value),
       endLatitude: Number($("#end-latitude").value),
       endLongitude: Number($("#end-longitude").value),
+      searchRadiusKm: Number($("#search-radius").value),
+      couponCode: $("#coupon-code").value.trim() || undefined,
     })});
     await refresh();
   } catch (error) { setNotice(error.message); }
 });
+
+$("#route-preset").addEventListener("change", (event) => applyLocationPreset(Number(event.target.value)));
+$("#history-filter").addEventListener("change", (event) => {
+  state.historyFilter = event.target.value;
+  renderRides();
+});
+["start-latitude", "start-longitude", "end-latitude", "end-longitude"].forEach((id) => {
+  $(`#${id}`).addEventListener("input", updateLocationSummary);
+});
+populateLocationPresets();
+applyLocationPreset(0);
+updateLocationSummary();
 
 $("#user-form").addEventListener("submit", async (event) => {
   event.preventDefault();

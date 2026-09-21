@@ -28,6 +28,7 @@ export interface BookRideRequest {
   endLatitude: number;
   endLongitude: number;
   searchRadiusKm?: number;
+  couponCode?: string;
 }
 
 export interface EndRideRequest {
@@ -79,6 +80,7 @@ export interface RideResponse {
   status: string;
   requestedVehicleType: string;
   actualVehicleType: string;
+  couponCode?: string;
   startLocation: { latitude: number; longitude: number };
   endLocation: { latitude: number; longitude: number };
   distance?: number;

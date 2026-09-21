@@ -11,7 +11,7 @@ npm test
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). The dashboard can create riders and drivers, request rides, refresh network status, and complete active rides.
+Open [http://localhost:3000](http://localhost:3000). The dashboard can create riders and drivers, choose familiar route presets, request rides, refresh network status, and complete active rides.
 
 Data is held in memory and resets when the process restarts.
 
@@ -22,6 +22,10 @@ Data is held in memory and resets when the process restarts.
 3. Watch the driver move to `ON_RIDE` and the trip appear in activity.
 4. Complete the trip to calculate distance and fare.
 5. Refresh to see the driver available again and the completed fare.
+
+The booking form includes presets for Delhi, Mumbai, and Bengaluru routes, a same-location minimum-fare case, and a no-driver-nearby case. Add another demo route by adding one object to `locationPresets` in `public/app.js`.
+
+For a coupon demo, enter `WELCOME20` before booking. The code is validated at booking time, shown as part of the ride state, and the discount is applied after completion when the final distance-based fare is known. The activity view shows the applied coupon and supports filtering history by rider or driver.
 
 ## API
 
@@ -65,4 +69,13 @@ The dashboard uses the same API as external clients. Domain services remain inde
 - Active rides can be cancelled with a 10% cancellation fee.
 - Driver assignment has an in-process reservation guard for concurrent requests.
 
-## Development
+## Assumptions and trade-offs
+
+- In-memory repositories keep the app easy to run locally; restarting the process resets all records.
+- A ride's distance is calculated from its pickup and drop-off coordinates when it ends.
+- Coupon codes are validated when booking starts and the discount is applied after the final fare is known.
+- The concurrency guard protects bookings within one Node.js process. A production deployment would use an atomic database update or distributed lock.
+
+## AI-assisted development
+
+AI tools were used for scaffolding, implementation suggestions, and test-case ideas. Generated code was reviewed against the domain rules, simplified where it introduced unnecessary abstractions, and adjusted for the in-memory repository model and browser flow. The final behavior was verified with the automated test suite and a manual dashboard walkthrough.

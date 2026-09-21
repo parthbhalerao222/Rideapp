@@ -27,6 +27,7 @@ import {
   CancellationPolicy,
   PercentageCancellationPolicy,
 } from '../strategies/CancellationPolicy';
+import { CouponService } from './CouponService';
 import { SEARCH_RADIUS_KM } from '../../shared/constants/pricing';
 
 export class RideService {
@@ -38,7 +39,8 @@ export class RideService {
     private userRepository: IUserRepository,
     private matchingStrategy: DriverMatchingStrategy = new NearestDriverMatchingStrategy(),
     surgePricingPolicy: SurgePricingPolicy = new NoSurgePricingPolicy(),
-    private cancellationPolicy: CancellationPolicy = new PercentageCancellationPolicy()
+    private cancellationPolicy: CancellationPolicy = new PercentageCancellationPolicy(),
+    private couponService?: CouponService
   ) {
     this.surgePricingCalculator = new SurgePricingCalculator(surgePricingPolicy);
   }
@@ -52,12 +54,19 @@ export class RideService {
     startLongitude: number,
     endLatitude: number,
     endLongitude: number,
-    searchRadiusKm: number = SEARCH_RADIUS_KM
+    searchRadiusKm: number = SEARCH_RADIUS_KM,
+    couponCode?: string
   ): Promise<Ride> {
     // Verify user exists
     const user = await this.userRepository.findById(userId);
     if (!user) {
       throw new UserNotFoundError(`User ${userId} not found`);
+    }
+    if (couponCode) {
+      if (!this.couponService) {
+        throw new Error('Coupon service is not configured');
+      }
+      await this.couponService.validateAndGetCoupon(couponCode);
     }
 
     const startLocation = new Location(startLatitude, startLongitude);
@@ -103,6 +112,9 @@ export class RideService {
     try {
       const rideId = IdGenerator.generateRideId();
       const ride = Ride.create(rideId, userId, selectedDriver.id, requestedVehicleType, actualVehicleType, startLocation, endLocation);
+      if (couponCode) {
+        ride.setCouponCode(couponCode);
+      }
       ride.startRide();
 
       selectedDriver.setStatus(DriverStatus.ON_RIDE);
@@ -117,7 +129,7 @@ export class RideService {
     }
   }
 
-  async endRide(rideId: string, couponCode?: string): Promise<{ ride: Ride; finalFare: Money }> {
+  async endRide(rideId: string): Promise<{ ride: Ride; finalFare: Money }> {
     const ride = await this.rideRepository.findById(rideId);
     if (!ride) {
       throw new RideNotFoundError(`Ride ${rideId} not found`);
@@ -136,13 +148,19 @@ export class RideService {
     ).length;
     const availableDrivers = (await this.driverRepository.findAvailableDrivers()).length + 1;
     const finalFare = this.surgePricingCalculator.apply(baseFare, activeRides, availableDrivers);
-
+    let discountedFare = finalFare;
+    const couponCode = ride.getCouponCode();
     if (couponCode) {
-      // Apply coupon separately (CouponService will handle validation)
-      // For now, just store it; the controller will handle coupon application
+      if (!this.couponService) {
+        throw new Error('Coupon service is not configured');
+      }
+      discountedFare = await this.couponService.applyCoupon(couponCode, finalFare);
     }
 
-    ride.endRide(finalFare, distanceKm);
+    if (couponCode) {
+      ride.applyCoupon(couponCode, discountedFare);
+    }
+    ride.endRide(discountedFare, distanceKm);
 
     // Mark driver as available
     const driver = await this.driverRepository.findById(ride.driverId);
@@ -156,7 +174,7 @@ export class RideService {
     await this.driverRepository.save(driver);
     this.reservedDriverIds.delete(driver.id);
 
-    return { ride, finalFare };
+    return { ride, finalFare: discountedFare };
   }
 
   async getUserRideHistory(userId: string): Promise<Ride[]> {

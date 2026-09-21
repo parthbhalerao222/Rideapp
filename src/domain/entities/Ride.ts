@@ -7,6 +7,7 @@ export class Ride {
   private actualFare: Money | null = null;
   private distanceKm: number | null = null;
   private appliedCouponCode: string | null = null;
+  private couponCode: string | null = null;
   private discountedFare: Money | null = null;
   private cancellationFee: Money | null = null;
 
@@ -33,6 +34,13 @@ export class Ride {
     endLocation: Location
   ): Ride {
     return new Ride(id, userId, driverId, requestedVehicleType, actualVehicleType, startLocation, endLocation, new Date());
+  }
+
+  setCouponCode(couponCode: string): void {
+    if (this.status !== RideStatus.REQUESTED) {
+      throw new Error('Coupon must be selected before the ride starts');
+    }
+    this.couponCode = couponCode;
   }
 
   getStatus(): RideStatus {
@@ -77,6 +85,10 @@ export class Ride {
 
   getAppliedCouponCode(): string | null {
     return this.appliedCouponCode;
+  }
+
+  getCouponCode(): string | null {
+    return this.couponCode;
   }
 
   getDiscountedFare(): Money | null {
