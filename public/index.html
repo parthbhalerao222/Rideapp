@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drift — Ride operations</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">DRIFT / OPERATIONS</p>
+          <h1>Ride control center</h1>
+          <p class="muted">A live view of riders, drivers, and trips in one place.</p>
+        </div>
+        <div class="topbar-actions">
+          <span id="api-status" class="status-pill">Checking API…</span>
+          <button id="refresh-button" class="button button-quiet">Refresh</button>
+        </div>
+      </header>
+
+      <section class="metrics" aria-label="Summary">
+        <article class="metric-card"><span>Riders</span><strong id="rider-count">0</strong><small>registered accounts</small></article>
+        <article class="metric-card"><span>Drivers</span><strong id="driver-count">0</strong><small>available on network</small></article>
+        <article class="metric-card"><span>Active rides</span><strong id="active-ride-count">0</strong><small>currently in progress</small></article>
+        <article class="metric-card accent-card"><span>Today’s fare</span><strong id="fare-total">₹0</strong><small>completed rides</small></article>
+      </section>
+
+      <div id="notice" class="notice" role="status"></div>
+
+      <section class="workspace">
+        <div class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">SETUP</p><h2>Add a rider</h2></div><span class="step-label">00</span></div>
+          <form id="user-form" class="form-grid">
+            <label>Name<input id="user-name" required placeholder="Alex Morgan" /></label>
+            <label>Email<input id="user-email" type="email" required placeholder="alex@example.com" /></label>
+            <label>Phone<input id="user-phone" required placeholder="+91 98765 43210" /></label>
+            <div></div>
+            <button class="button button-primary full-width" type="submit">Add rider <span>→</span></button>
+          </form>
+        </div>
+        <div class="panel">
+          <div class="panel-heading"><div><p class="eyebrow">SETUP</p><h2>Add a driver</h2></div><span class="step-label">00</span></div>
+          <form id="driver-form" class="form-grid">
+            <label>Name<input id="driver-name" required placeholder="Sam Taylor" /></label>
+            <label>Vehicle<select id="driver-vehicle"><option value="HATCHBACK">Hatchback</option><option value="SEDAN">Sedan</option></select></label>
+            <label>Model<input id="driver-model" required placeholder="Honda City" /></label>
+            <label>Plate<input id="driver-plate" required placeholder="MH 12 AB 1234" /></label>
+            <input id="driver-email" type="hidden" value="driver@example.com" />
+            <input id="driver-phone" type="hidden" value="+91 90000 00000" />
+            <button class="button button-primary full-width" type="submit">Add driver <span>→</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="panel booking-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">BOOK A TRIP</p>
+              <h2>Request a ride</h2>
+            </div>
+            <span class="step-label">01</span>
+          </div>
+          <form id="booking-form" class="form-grid">
+            <label>Rider<select id="booking-user" required></select></label>
+            <label>Vehicle<select id="booking-vehicle"><option value="HATCHBACK">Hatchback</option><option value="SEDAN">Sedan</option></select></label>
+            <label>Pickup latitude<input id="start-latitude" type="number" step="any" value="28.7041" required /></label>
+            <label>Pickup longitude<input id="start-longitude" type="number" step="any" value="77.1025" required /></label>
+            <label>Drop-off latitude<input id="end-latitude" type="number" step="any" value="28.6139" required /></label>
+            <label>Drop-off longitude<input id="end-longitude" type="number" step="any" value="77.2090" required /></label>
+            <button class="button button-primary full-width" type="submit">Find a driver <span>→</span></button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-heading">
+            <div><p class="eyebrow">NETWORK</p><h2>Driver status</h2></div>
+            <span class="step-label">02</span>
+          </div>
+          <div id="driver-list" class="list"></div>
+        </div>
+      </section>
+
+      <section class="panel rides-panel">
+        <div class="panel-heading">
+          <div><p class="eyebrow">TRIP ACTIVITY</p><h2>Recent rides</h2></div>
+          <span id="ride-count-label" class="muted">0 rides</span>
+        </div>
+        <div id="ride-list" class="ride-list empty-state">No rides yet. Request one above to get started.</div>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

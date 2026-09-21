@@ -14,10 +14,12 @@ export function createRouter(
 
   // User routes
   router.post('/users', (req, res) => userController.registerUser(req, res));
+  router.get('/users', (req, res) => userController.listUsers(req, res));
   router.get('/users/:userId', (req, res) => userController.getUser(req, res));
 
   // Driver routes
   router.post('/drivers', (req, res) => driverController.registerDriver(req, res));
+  router.get('/drivers', (req, res) => driverController.listDrivers(req, res));
   router.get('/drivers/:driverId', (req, res) => driverController.getDriver(req, res));
   router.patch('/drivers/:driverId/location', (req, res) => driverController.updateLocation(req, res));
 

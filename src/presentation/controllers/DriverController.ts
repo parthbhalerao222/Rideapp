@@ -48,12 +48,18 @@ export class DriverController {
         res.status(400).json({ error: 'latitude and longitude are required' });
         return;
       }
+
       const driver = await this.driverService.updateDriverLocation(driverId, latitude, longitude);
       res.status(200).json(this.driverToResponse(driver));
     } catch (error) {
       const statusCode = error instanceof Error && error.constructor.name === 'DriverNotFoundError' ? 404 : 500;
       res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
+  }
+
+  async listDrivers(req: Request, res: Response): Promise<void> {
+    const drivers = await this.driverService.getAllDrivers();
+    res.status(200).json(drivers.map((driver) => this.driverToResponse(driver)));
   }
 
   private driverToResponse(driver: any): DriverResponse {

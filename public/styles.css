@@ -1,0 +1,66 @@
+:root {
+  color-scheme: light;
+  --ink: #17201d;
+  --muted: #71807a;
+  --line: #e4e9e5;
+  --paper: #f6f8f5;
+  --card: #ffffff;
+  --green: #1d6b4d;
+  --mint: #dff2e6;
+  --orange: #ef9362;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); }
+.shell { max-width: 1240px; margin: 0 auto; padding: 42px 28px 64px; }
+.topbar { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; margin-bottom: 34px; }
+.eyebrow { color: var(--green); font-size: 11px; font-weight: 800; letter-spacing: .14em; margin: 0 0 9px; }
+h1, h2, p { margin-top: 0; }
+h1 { font-size: clamp(30px, 5vw, 52px); line-height: 1; letter-spacing: -.055em; margin-bottom: 13px; }
+h2 { font-size: 21px; letter-spacing: -.03em; margin-bottom: 0; }
+.muted { color: var(--muted); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.status-pill, .step-label, .badge { border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.status-pill { background: var(--mint); color: var(--green); padding: 9px 13px; }
+.button { border: 0; border-radius: 10px; cursor: pointer; font: inherit; font-weight: 750; padding: 12px 16px; transition: transform .15s, opacity .15s; }
+.button:hover { transform: translateY(-1px); }
+.button-primary { color: #fff; background: var(--green); }
+.button-quiet { color: var(--ink); background: #fff; border: 1px solid var(--line); }
+.button-small { padding: 8px 11px; font-size: 12px; }
+.full-width { width: 100%; display: flex; justify-content: space-between; }
+.metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.metric-card, .panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; }
+.metric-card { min-height: 132px; padding: 20px; display: flex; flex-direction: column; }
+.metric-card span, .metric-card small { color: var(--muted); font-size: 12px; }
+.metric-card strong { font-size: 34px; letter-spacing: -.05em; margin: auto 0 4px; }
+.accent-card { background: var(--green); color: #fff; border-color: var(--green); }
+.accent-card span, .accent-card small { color: #b8dbc8; }
+.workspace { display: grid; grid-template-columns: 1.15fr .85fr; gap: 18px; margin-bottom: 18px; }
+.panel { padding: 24px; }
+.panel-heading { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
+.step-label { color: var(--muted); background: var(--paper); padding: 7px 9px; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+label { display: flex; flex-direction: column; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 700; }
+input, select { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fbfcfb; color: var(--ink); font: inherit; padding: 12px; }
+.notice { min-height: 0; color: #a34e2d; font-size: 13px; margin: 0 0 14px; }
+.list { display: grid; gap: 10px; }
+.driver-row, .ride-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 14px 0; }
+.driver-row:first-child, .ride-row:first-child { border-top: 0; padding-top: 0; }
+.driver-name { font-weight: 750; font-size: 14px; margin-bottom: 4px; }
+.driver-meta, .ride-meta { color: var(--muted); font-size: 12px; }
+.badge { padding: 6px 8px; text-transform: uppercase; }
+.badge-available { color: var(--green); background: var(--mint); }
+.badge-ongoing { color: #9d5e25; background: #fff0d9; }
+.badge-completed { color: #596968; background: #edf0ef; }
+.ride-list { min-height: 100px; }
+.empty-state { color: var(--muted); display: grid; place-items: center; padding: 28px 0; }
+.ride-row-actions { display: flex; align-items: center; gap: 12px; }
+.fare { font-size: 15px; font-weight: 800; white-space: nowrap; }
+@media (max-width: 800px) {
+  .topbar, .workspace { display: block; }
+  .topbar-actions { margin-top: 20px; }
+  .metrics { grid-template-columns: 1fr 1fr; }
+  .panel { margin-top: 18px; }
+}
+@media (max-width: 500px) { .shell { padding: 28px 16px; } .metrics { gap: 8px; } .metric-card { padding: 14px; } .metric-card strong { font-size: 27px; } .form-grid { grid-template-columns: 1fr; } }

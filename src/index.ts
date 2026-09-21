@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import { UserService } from './application/services/UserService';
 import { DriverService } from './application/services/DriverService';
 import { RideService } from './application/services/RideService';
@@ -20,6 +21,7 @@ function initializeApp() {
 
   // Middleware
   app.use(express.json());
+  app.use(express.static(path.join(__dirname, '../public')));
 
   // Initialize repositories
   const userRepository = new InMemoryUserRepository();
@@ -46,6 +48,10 @@ function initializeApp() {
   // Health check
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok' });
+  });
+
+  app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
   });
 
   // Error handling for 404

@@ -40,5 +40,18 @@ export class UserController {
       const statusCode = error instanceof Error && error.constructor.name === 'UserNotFoundError' ? 404 : 500;
       res.status(statusCode).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
+
+  }
+
+  async listUsers(req: Request, res: Response): Promise<void> {
+    const users = await this.userService.getAllUsers();
+    res.status(200).json(
+      users.map((user) => ({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+      }))
+    );
   }
 }
