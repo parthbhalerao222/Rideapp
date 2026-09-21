@@ -30,6 +30,8 @@ import {
 import { SEARCH_RADIUS_KM } from '../../shared/constants/pricing';
 
 export class RideService {
+  private readonly reservedDriverIds = new Set<string>();
+
   constructor(
     private rideRepository: IRideRepository,
     private driverRepository: IDriverRepository,
@@ -64,7 +66,9 @@ export class RideService {
     // Find available drivers within radius
     const availableDrivers = await this.driverRepository.findAvailableDrivers();
     const driversInRadius = availableDrivers.filter(
-      (driver) => driver.getLocation().distanceTo(startLocation) <= searchRadiusKm
+      (driver) =>
+        !this.reservedDriverIds.has(driver.id) &&
+        driver.getLocation().distanceTo(startLocation) <= searchRadiusKm
     );
 
     if (driversInRadius.length === 0) {
@@ -93,18 +97,24 @@ export class RideService {
       throw new NoDriverAvailableError(`No ${requestedVehicleType} available within ${searchRadiusKm}km radius`);
     }
 
+    this.reservedDriverIds.add(selectedDriver.id);
+
     // Create and save ride
-    const rideId = IdGenerator.generateRideId();
-    const ride = Ride.create(rideId, userId, selectedDriver.id, requestedVehicleType, actualVehicleType, startLocation, endLocation);
-    ride.startRide();
+    try {
+      const rideId = IdGenerator.generateRideId();
+      const ride = Ride.create(rideId, userId, selectedDriver.id, requestedVehicleType, actualVehicleType, startLocation, endLocation);
+      ride.startRide();
 
-    // Mark driver as on ride
-    selectedDriver.setStatus(DriverStatus.ON_RIDE);
+      selectedDriver.setStatus(DriverStatus.ON_RIDE);
 
-    await this.rideRepository.save(ride);
-    await this.driverRepository.save(selectedDriver);
+      await this.rideRepository.save(ride);
+      await this.driverRepository.save(selectedDriver);
 
-    return ride;
+      return ride;
+    } catch (error) {
+      this.reservedDriverIds.delete(selectedDriver.id);
+      throw error;
+    }
   }
 
   async endRide(rideId: string, couponCode?: string): Promise<{ ride: Ride; finalFare: Money }> {
@@ -144,6 +154,7 @@ export class RideService {
 
     await this.rideRepository.save(ride);
     await this.driverRepository.save(driver);
+    this.reservedDriverIds.delete(driver.id);
 
     return { ride, finalFare };
   }
@@ -170,6 +181,7 @@ export class RideService {
     driver.setStatus(DriverStatus.AVAILABLE);
     await this.rideRepository.save(ride);
     await this.driverRepository.save(driver);
+    this.reservedDriverIds.delete(driver.id);
     return { ride, cancellationFee };
   }
 
